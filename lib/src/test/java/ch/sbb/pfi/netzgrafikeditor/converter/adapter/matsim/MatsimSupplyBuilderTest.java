@@ -152,7 +152,7 @@ class MatsimSupplyBuilderTest {
         // assert
         Network network = scenario.getNetwork();
         assertNotNull(network);
-        assertEquals(16, network.getNodes().size(), "Expected 16 nodes in the network");
+        assertEquals(10, network.getNodes().size(), "Expected 10 nodes in the network");
         assertEquals(16, network.getLinks().size(), "Expected 16 links in the network");
 
         TransitSchedule schedule = scenario.getTransitSchedule();
