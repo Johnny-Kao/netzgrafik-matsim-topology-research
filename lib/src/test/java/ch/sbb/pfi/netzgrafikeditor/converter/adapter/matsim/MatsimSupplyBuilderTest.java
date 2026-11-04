@@ -24,6 +24,7 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.utils.TransitScheduleValidator;
 import org.matsim.vehicles.Vehicles;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -156,6 +157,8 @@ class MatsimSupplyBuilderTest {
 
         TransitSchedule schedule = scenario.getTransitSchedule();
         assertNotNull(schedule);
+        var topology = TransitScheduleValidator.validateNetworkRoutes(schedule, network);
+        assertTrue(topology.isValid(), () -> "Network route errors: " + topology.getErrors());
         assertEquals(4, schedule.getFacilities().size(), "Expected 4 stop facilities");
         assertEquals(1, schedule.getTransitLines().size(), "Expected 1 transit line in the schedule");
         assertTrue(schedule.getTransitLines().containsKey(Id.create("lineSimple", TransitLine.class)),
