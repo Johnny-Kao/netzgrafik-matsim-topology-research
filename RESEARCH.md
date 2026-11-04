@@ -22,32 +22,44 @@ the following link's `fromNode`. MATSim provides
 `C_D` (three segments), as well as reverse routes, but currently asserts only
 counts and does not call that validator.
 
-## Reproduction status
+## Verified results (2026-11-05)
 
-- **Source inspection:** the identity mismatch is present in upstream baseline.
-- **Isolated Python topology model (handoff):** 3 broken boundaries on forward
-  `B_C` and `C_D`; 0 after the proposed node-reuse change.
-- **Actual upstream Java 25/MATSim red-green regression:** NOT YET RUN.
-- **No production patch committed and no upstream PR submitted.**
+All runs used the actual Java 25/MATSim version in the upstream Maven build,
+executed through manual GitHub Actions in **this independent research repo**.
+None ran on the local Mac.
 
-The simplest candidate fix reuses the previous link's `toNode` as the next
-new segment's `fromNode`. In the existing test fixture, the proposed
-change predicts 16 -> 10 nodes and unchanged 16 links. Those are predictions,
-not verified integration-test results.
+| Run | Code version | Result | Evidence |
+| --- | --- | --- | --- |
+| [Original + validator](https://github.com/Johnny-Kao/netzgrafik-matsim-topology-research/actions/runs/41858661615) | `6b45390` | **RED**: 89 tests, 1 failure; six disconnected route boundaries across forward/reverse routes | Real MATSim validator output |
+| [Simple previous-node reuse](https://github.com/Johnny-Kao/netzgrafik-matsim-topology-research/actions/runs/41859291450) | `8555120` | **GREEN**: normal full Maven CI | Existing fixture: 16 -> 10 nodes, 16 links |
+| [Cached shared-segment junction](https://github.com/Johnny-Kao/netzgrafik-matsim-topology-research/actions/runs/41860097074) | `4302ae6` | **RED**: 90 tests, 1 failure | Two routes converge at identical geometric junction J, but the cached J->D link uses a different start Node |
+| [Junction-aware next-link reuse](https://github.com/Johnny-Kao/netzgrafik-matsim-topology-research/actions/runs/41860682605) | `f4b8ae8` | **GREEN**: Maven build and tests pass | Reuse the cached next link's `fromNode` when creating its predecessor |
 
-## Validation plan
+The first minimal patch **was not sufficient** for shared cached segments. This
+research branch therefore includes two complementary local connection rules:
 
-1. Add **only** the regression assertion calling
-   `TransitScheduleValidator.validateNetworkRoutes(...).isValid()`.
-   Leave the old node-count expectation intact and establish a failing
-   baseline test in the real upstream build.
-2. Inspect the exact validation failures; avoid mistaking unrelated
-   route problems for confirmation of this hypothesis.
-3. Apply a narrow production fix. Reconcile the test's node count and verify
-   links, stop facilities, route ordering, and cached-segment reuse.
-4. Run the focused JUnit test and full Maven suite with JDK 25 on GitHub Actions.
-5. Re-check upstream issues/PRs and contribution instructions before proposing
-   any upstream change.
+1. For a new segment following an existing or newly-created link, use the
+   preceding link's `toNode` as `fromNode`.
+2. For a new segment preceding a previously cached next segment, use the
+   next link's `fromNode` as `toNode`.
+
+Both regressions must remain in the candidate fix. This is evidence of the two
+tested topologies, **not** exhaustive proof for arbitrary infrastructure or
+shared route geometry. No upstream PR has been opened.
+
+## Exposure and follow-up
+
+- The included `NoInfrastructureRepository` and `CsvInfrastructureRepository`
+  currently return exactly one `TrackSegmentInfo` per `getTrack()` call, so
+  the reproduced multi-segment defect does not affect those default paths.
+- The public `InfrastructureRepository` contract returns a list, and the
+  existing tests explicitly exercise multi-segment routes: custom repository
+  consumers can encounter this bug.
+- Reused segment IDs with inconsistent directions, stop nodes coincident with
+  cached internal junctions, and coordinate-order/geometric correctness need
+  separate investigation before claiming universal validity.
+- Compare upstream history/issues/PRs before preparing an optional small PR;
+  a related but distinct upstream fix is [#4](https://github.com/SchweizerischeBundesbahnen/netzgrafik-editor-converter/pull/4).
 
 Important independent question: reverse-direction `C_B`/`D_C` fixture
 coordinates appear out of order. MATSim's topology validator does **not**
