@@ -150,9 +150,14 @@ class InfrastructureBuilder {
                     Link toLink = scenario.getNetwork().getLinks().get(toStop.getLinkId());
                     toNode = toLink.getFromNode();
                 } else {
-                    toNode = factory.createNode(String.format("%s_to_node", segment.getSegmentId()),
-                            new Coord(segment.getToCoordinate().getLongitude(),
-                                    segment.getToCoordinate().getLatitude()));
+                    Id<Link> nextLinkId = addedSegments.get(segments.get(count + 1).getSegmentId());
+                    if (nextLinkId != null) {
+                        toNode = scenario.getNetwork().getLinks().get(nextLinkId).getFromNode();
+                    } else {
+                        toNode = factory.createNode(String.format("%s_to_node", segment.getSegmentId()),
+                                new Coord(segment.getToCoordinate().getLongitude(),
+                                        segment.getToCoordinate().getLatitude()));
+                    }
                 }
 
                 Id<Link> segmentLink = factory.createLink(LinkType.ROUTE, fromNode, toNode, segment.getLength(),
