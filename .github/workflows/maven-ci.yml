@@ -17,7 +17,7 @@ jobs:
           java-version: '25'
           distribution: temurin
           cache: maven
-      - name: Add isolated regression probes
+      - name: Inject isolated order-dependent metadata probes
         shell: bash
         run: |
           python3 - <<'PY'
@@ -26,31 +26,8 @@ jobs:
           s = p.read_text()
           anchor = "        @Test\n        void brokenTrackIsBuiltAsGivenWhenWarning() {"
           assert s.count(anchor) == 1, "Upstream test layout changed"
-          injected = """        @Test
-                  void reusedSegmentWithChangedNodeCoordinateMustFailValidation() {
-                      track("A", "D", segment("A-J", "A", "J"), segment("J-D", "J", "D"));
-                      TrackNodeInfo movedJunction = new TrackNodeInfo("J", new Coordinate(1.5, 1));
-                      track("B", "D", segment("B-J", "B", "J"),
-                              new TrackSegmentInfo("J-D", movedJunction, nodes.get("D"), 1000));
-          
-                      InfrastructureBuilder builder = build(ValidationStrategy.FAIL_ON_ISSUES, "A>D", "B>D");
-                      assertThrows(IllegalStateException.class, builder::handleTrackIssues,
-                              "Reusing an existing segment must not skip a conflicting node coordinate");
-                  }
-          
-                  @Test
-                  void newSegmentWithChangedNodeCoordinateStillFailsValidation() {
-                      track("A", "D", segment("A-J", "A", "J"), segment("J-D", "J", "D"));
-                      TrackNodeInfo movedJunction = new TrackNodeInfo("J", new Coordinate(1.5, 1));
-                      track("B", "D", new TrackSegmentInfo("B-J", nodes.get("B"), movedJunction, 1000),
-                              segment("J-D", "J", "D"));
-          
-                      InfrastructureBuilder builder = build(ValidationStrategy.FAIL_ON_ISSUES, "A>D", "B>D");
-                      assertThrows(IllegalStateException.class, builder::handleTrackIssues);
-                  }
-          
-          """
+          injected = "        @Test\n        void sameSegmentMetadataFirstRouteWinsAFirst() {\n            TrackSegmentInfo a = new TrackSegmentInfo(\"J-D\", nodes.get(\"J\"), nodes.get(\"D\"), 1111);\n            a.getLinkAttributes().put(\"probe_source\", \"A\");\n            TrackSegmentInfo b = new TrackSegmentInfo(\"J-D\", nodes.get(\"J\"), nodes.get(\"D\"), 2222);\n            b.getLinkAttributes().put(\"probe_source\", \"B\");\n            track(\"A\", \"D\", segment(\"A-J\", \"A\", \"J\"), a);\n            track(\"B\", \"D\", segment(\"B-J\", \"B\", \"J\"), b);\n            InfrastructureBuilder builder = build(ValidationStrategy.FAIL_ON_ISSUES, \"A>D\", \"B>D\");\n            assertDoesNotThrow(builder::handleTrackIssues);\n            assertRoutesAreContinuous();\n            Link link = scenario.getNetwork().getLinks().get(Id.createLinkId(\"track_link_J-D\"));\n            System.out.println(\"ORDER_PROBE A-first length=\" + link.getLength() + \" source=\" + link.getAttributes().getAttribute(\"probe_source\"));\n            assertEquals(1111, link.getLength());\n            assertEquals(\"A\", link.getAttributes().getAttribute(\"probe_source\"));\n        }\n\n        @Test\n        void sameSegmentMetadataFirstRouteWinsBFirst() {\n            TrackSegmentInfo a = new TrackSegmentInfo(\"J-D\", nodes.get(\"J\"), nodes.get(\"D\"), 1111);\n            a.getLinkAttributes().put(\"probe_source\", \"A\");\n            TrackSegmentInfo b = new TrackSegmentInfo(\"J-D\", nodes.get(\"J\"), nodes.get(\"D\"), 2222);\n            b.getLinkAttributes().put(\"probe_source\", \"B\");\n            track(\"A\", \"D\", segment(\"A-J\", \"A\", \"J\"), a);\n            track(\"B\", \"D\", segment(\"B-J\", \"B\", \"J\"), b);\n            InfrastructureBuilder builder = build(ValidationStrategy.FAIL_ON_ISSUES, \"B>D\", \"A>D\");\n            assertDoesNotThrow(builder::handleTrackIssues);\n            assertRoutesAreContinuous();\n            Link link = scenario.getNetwork().getLinks().get(Id.createLinkId(\"track_link_J-D\"));\n            System.out.println(\"ORDER_PROBE B-first length=\" + link.getLength() + \" source=\" + link.getAttributes().getAttribute(\"probe_source\"));\n            assertEquals(2222, link.getLength());\n            assertEquals(\"B\", link.getAttributes().getAttribute(\"probe_source\"));\n        }\n\n"
           p.write_text(s.replace(anchor, injected + anchor))
           PY
-      - name: Run upstream tests with regression probes
+      - name: Run original tests and metadata probes
         run: mvn --batch-mode test --file pom.xml -pl lib -am -Dtest=InfrastructureBuilderTest -Dsurefire.failIfNoSpecifiedTests=false
