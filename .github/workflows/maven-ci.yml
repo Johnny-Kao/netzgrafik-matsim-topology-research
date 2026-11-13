@@ -1,20 +1,56 @@
 name: Maven CI
-
 on:
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up JDK
-        uses: actions/setup-java@v6
+      - name: Check out SBB PR 235 code, read-only
+        uses: actions/checkout@v4
+        with:
+          repository: SchweizerischeBundesbahnen/netzgrafik-editor-converter
+          ref: 3eea15706b1ddd5edf4ba84ff8eb9f575adfbea6
+          persist-credentials: false
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
         with:
           java-version: '25'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Build with Maven
-        run: mvn --batch-mode install --file pom.xml
+          distribution: temurin
+          cache: maven
+      - name: Add isolated regression probes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+            from pathlib import Path
+            p = Path("lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/adapter/matsim/InfrastructureBuilderTest.java")
+            s = p.read_text()
+            anchor = "        @Test\n        void brokenTrackIsBuiltAsGivenWhenWarning() {"
+            assert s.count(anchor) == 1, "Upstream test layout changed"
+            injected = """        @Test
+                    void reusedSegmentWithChangedNodeCoordinateMustFailValidation() {
+                        track("A", "D", segment("A-J", "A", "J"), segment("J-D", "J", "D"));
+                        TrackNodeInfo movedJunction = new TrackNodeInfo("J", new Coordinate(1.5, 1));
+                        track("B", "D", segment("B-J", "B", "J"),
+                                new TrackSegmentInfo("J-D", movedJunction, nodes.get("D"), 1000));
+            
+                        InfrastructureBuilder builder = build(ValidationStrategy.FAIL_ON_ISSUES, "A>D", "B>D");
+                        assertThrows(IllegalStateException.class, builder::handleTrackIssues,
+                                "Reusing an existing segment must not skip a conflicting node coordinate");
+                    }
+            
+                    @Test
+                    void newSegmentWithChangedNodeCoordinateStillFailsValidation() {
+                        track("A", "D", segment("A-J", "A", "J"), segment("J-D", "J", "D"));
+                        TrackNodeInfo movedJunction = new TrackNodeInfo("J", new Coordinate(1.5, 1));
+                        track("B", "D", new TrackSegmentInfo("B-J", nodes.get("B"), movedJunction, 1000),
+                                segment("J-D", "J", "D"));
+            
+                        InfrastructureBuilder builder = build(ValidationStrategy.FAIL_ON_ISSUES, "A>D", "B>D");
+                        assertThrows(IllegalStateException.class, builder::handleTrackIssues);
+                    }
+            
+            """
+            p.write_text(s.replace(anchor, injected + anchor))
+          PY
+      - name: Run upstream tests with regression probes
+        run: mvn --batch-mode test --file pom.xml -pl lib -am -Dtest=InfrastructureBuilderTest -Dsurefire.failIfNoSpecifiedTests=false
