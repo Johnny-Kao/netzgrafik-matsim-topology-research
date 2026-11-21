@@ -57,6 +57,20 @@ class CommandLineConverterIT {
         runConverter(testCase, output, format);
     }
 
+    @org.junit.jupiter.api.Test
+    void testConvertCommand_usesDocumentedDefaultServiceDayStart() throws IOException {
+        args.set(0, ch.sbb.pfi.netzgrafikeditor.converter.test.TestCase.SIMPLE.getPath().toString());
+        args.add(outputDir.toString());
+
+        int exitCode = SpringApplication.exit(
+                SpringApplication.run(CommandLineConverter.class, args.toArray(new String[0])));
+
+        assertThat(exitCode).isEqualTo(0);
+        String stopTimes = Files.readString(outputDir.resolve("stop_times.txt"));
+        assertThat(stopTimes).contains("05:05:00");
+        assertThat(stopTimes).doesNotContain("04:05:00");
+    }
+
     private void runConverter(TestCase testCase, CapturedOutput output, String format) throws IOException {
         // arrange
         args.add(outputDir.toString());
