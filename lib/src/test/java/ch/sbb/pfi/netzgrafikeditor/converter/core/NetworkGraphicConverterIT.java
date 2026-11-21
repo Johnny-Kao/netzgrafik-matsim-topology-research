@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -211,6 +212,38 @@ public class NetworkGraphicConverterIT {
             assertEquals(Calendar.Type.AVAILABLE, calendar.getMonday());
             assertEquals(Calendar.Type.NOT_AVAILABLE, calendar.getSaturday());
             assertEquals(calendar.getServiceId(), schedule.getTrips().getFirst().getServiceId());
+        }
+
+        @Test
+        void run_preservesDifferentOperatingWeekdaysInOneFeed() throws IOException {
+            String networkGraphic = Files.readString(TestScenario.REALISTIC_SCENARIO.getNetworkGraphicFilePath())
+                    .replace("""
+                            "weekday": [
+                              1,
+                              2,
+                              3,
+                              4,
+                              5,
+                              6,
+                              7
+                            ],
+                            "linePatternRef": "HVZ""", """
+                            "weekday": [1, 2, 3, 4, 5],
+                            "linePatternRef": "HVZ""")
+                    .replaceFirst("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1");
+            Path input = outputDir.resolve("mixed-weekdays.json");
+            Files.writeString(input, networkGraphic);
+            configure(input);
+
+            converter.run();
+
+            assertEquals(2, schedule.getCalendars().size());
+            assertTrue(schedule.getCalendars().stream().anyMatch(calendar -> calendar.getServiceId().equals("always")
+                    && calendar.getSaturday() == Calendar.Type.AVAILABLE));
+            assertTrue(schedule.getCalendars().stream().anyMatch(calendar -> calendar.getServiceId().equals("weekday-1-2-3-4-5")
+                    && calendar.getSaturday() == Calendar.Type.NOT_AVAILABLE));
+            assertEquals(Set.of("always", "weekday-1-2-3-4-5"), schedule.getTrips().stream()
+                    .map(trip -> trip.getServiceId()).collect(Collectors.toSet()));
         }
 
         private void validate(TestCase testCase) {
