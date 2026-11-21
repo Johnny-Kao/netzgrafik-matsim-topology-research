@@ -239,6 +239,10 @@ public class NetworkGraphicConverterIT {
                     && calendar.getSaturday() == Calendar.Type.NOT_AVAILABLE));
             assertEquals(Set.of("always", "weekday-1-2-3-4-5"), schedule.getTrips().stream()
                     .map(trip -> trip.getServiceId()).collect(Collectors.toSet()));
+            assertTrue(schedule.getTrips().stream().filter(trip -> trip.getRouteId().equals("21"))
+                    .allMatch(trip -> trip.getServiceId().equals("weekday-1-2-3-4-5")));
+            assertTrue(schedule.getTrips().stream().filter(trip -> !trip.getRouteId().equals("21"))
+                    .allMatch(trip -> trip.getServiceId().equals("always")));
         }
 
         private void validate(TestCase testCase) {
