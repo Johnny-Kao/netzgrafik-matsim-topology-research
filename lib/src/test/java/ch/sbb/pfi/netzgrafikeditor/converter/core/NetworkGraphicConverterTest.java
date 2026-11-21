@@ -203,7 +203,7 @@ class NetworkGraphicConverterTest {
         String networkGraphic = Files.readString(TestCase.SIMPLE.getPath())
                 .replace("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1")
                 .replace("\"to\": 420", "\"to\": 425");
-        configureServiceDay(ServiceDayTime.MIN, ServiceDayTime.NOON, ServiceDayBoundary.FULL);
+        when(config.getServiceDayBoundary()).thenReturn(ServiceDayBoundary.FULL);
         when(source.load()).thenReturn(new JsonDeserializer().read(networkGraphic));
 
         converter.run();
