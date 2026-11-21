@@ -5,13 +5,20 @@ import ch.sbb.pfi.netzgrafikeditor.converter.core.supply.TrackSegmentInfo;
 import ch.sbb.pfi.netzgrafikeditor.converter.test.TestScenario;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class CsvInfrastructureRepositoryTest {
+
+    @TempDir
+    Path tempDir;
 
     private CsvInfrastructureRepository repo;
 
@@ -42,5 +49,25 @@ class CsvInfrastructureRepositoryTest {
         assertEquals(repo.getStopFacility("A", "Stop A", 0., 0.).getCoordinate(),
                 segment.getFromNode().getCoordinate());
         assertEquals(repo.getStopFacility("B", "Stop B", 0., 0.).getCoordinate(), segment.getToNode().getCoordinate());
+    }
+
+    @Test
+    void tracksWithHyphensInDifferentStopIdsHaveDifferentSegmentIds() throws IOException {
+        Path stops = tempDir.resolve("stops.csv");
+        Files.writeString(stops, """
+                stop_id,stop_name,stop_lat,stop_lon
+                A-B,First origin,46.0,7.0
+                C,First destination,46.1,7.1
+                A,Second origin,46.2,7.2
+                B-C,Second destination,46.3,7.3
+                """);
+        CsvInfrastructureRepository hyphenatedRepo = new CsvInfrastructureRepository(stops);
+
+        TrackSegmentInfo first = hyphenatedRepo.getTrack(new StopFacilityInfo("A-B", "", null),
+                new StopFacilityInfo("C", "", null), null).getFirst();
+        TrackSegmentInfo second = hyphenatedRepo.getTrack(new StopFacilityInfo("A", "", null),
+                new StopFacilityInfo("B-C", "", null), null).getFirst();
+
+        assertNotEquals(first.getId(), second.getId());
     }
 }
