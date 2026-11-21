@@ -1,6 +1,7 @@
 package ch.sbb.pfi.netzgrafikeditor.converter.core;
 
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.GtfsSupplyBuilder;
+import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.model.Calendar;
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.model.GtfsSchedule;
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.model.StopTime;
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.matsim.MatsimSupplyBuilder;
@@ -31,6 +32,7 @@ import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -192,6 +194,23 @@ public class NetworkGraphicConverterIT {
 
             // the line is named after its full route, not after a clipped route
             assertEquals("S: A - A", schedule.getRoutes().getFirst().getRouteShortName());
+        }
+
+        @Test
+        void run_preservesOperatingWeekdays() throws IOException {
+            String networkGraphic = Files.readString(TestCase.SIMPLE.getPath()).replaceFirst(
+                    "\"weekday\": \\[\\s*1,\\s*2,\\s*3,\\s*4,\\s*5,\\s*6,\\s*7\\s*\\]",
+                    "\"weekday\": [1, 2, 3, 4, 5]");
+            Path input = outputDir.resolve("weekdays.json");
+            Files.writeString(input, networkGraphic);
+            configure(input);
+
+            converter.run();
+
+            Calendar calendar = schedule.getCalendars().getFirst();
+            assertEquals(Calendar.Type.AVAILABLE, calendar.getMonday());
+            assertEquals(Calendar.Type.NOT_AVAILABLE, calendar.getSaturday());
+            assertEquals(calendar.getServiceId(), schedule.getTrips().getFirst().getServiceId());
         }
 
         private void validate(TestCase testCase) {
