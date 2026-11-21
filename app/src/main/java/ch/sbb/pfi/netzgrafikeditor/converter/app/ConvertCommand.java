@@ -31,7 +31,7 @@ public class ConvertCommand implements Callable<Integer> {
     private ValidationStrategy validationStrategy;
     @CommandLine.Option(names = {"-t", "--train-names"}, description = "Use train names as route or line IDs (true/false).", defaultValue = "false")
     private boolean useTrainNamesAsIds;
-    @CommandLine.Option(names = {"-s", "--service-day-start"}, description = "Service day start time (HH:mm).", converter = ServiceDayTimeConverter.class, defaultValue = "04:00")
+    @CommandLine.Option(names = {"-s", "--service-day-start"}, description = "Service day start time (HH:mm).", converter = ServiceDayTimeConverter.class, defaultValue = "05:00")
     private ServiceDayTime serviceDayStart;
     @CommandLine.Option(names = {"-e", "--service-day-end"}, description = "Service day end time (HH:mm).", converter = ServiceDayTimeConverter.class, defaultValue = "25:00")
     private ServiceDayTime serviceDayEnd;
