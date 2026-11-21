@@ -13,9 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GtfsScheduleWriterTest {
@@ -53,6 +55,14 @@ class GtfsScheduleWriterTest {
         void save_empty() throws IOException {
             writer.save(SCHEDULE_EMPTY);
             ensureFiles();
+        }
+
+        @Test
+        void save_replacesRowsFromPreviousExport() throws IOException {
+            writer.save(SCHEDULE);
+            writer.save(SCHEDULE_EMPTY);
+
+            assertEquals(1, Files.readAllLines(outputDir.resolve("stops.txt")).size());
         }
 
         private void ensureFiles() {
