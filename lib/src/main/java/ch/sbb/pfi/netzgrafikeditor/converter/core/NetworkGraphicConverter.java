@@ -373,7 +373,7 @@ public class NetworkGraphicConverter<T> {
             int fromTime = (int) Math.round(dti.getFrom() * SECONDS_PER_MINUTE);
             int toTime = (int) Math.round(dti.getTo() * SECONDS_PER_MINUTE);
             for (int departureTime = firstDepartureAtOrAfter(train, firstSection,
-                    fromTime); departureTime < toTime; departureTime += frequency) {
+                    fromTime); departureTime <= toTime; departureTime += frequency) {
                 departures.add(new ServiceDayTime(departureTime));
             }
         }

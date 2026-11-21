@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -193,6 +194,21 @@ class NetworkGraphicConverterTest {
         verify(builder).addDeparture("IC_A_D_FORWARD", ServiceDayTime.of(7, 5, 0));
         verify(builder).addDeparture("IC_A_D_FORWARD", ServiceDayTime.of(8, 5, 0));
         verify(builder, never()).addDeparture("IC_A_D_FORWARD", ServiceDayTime.of(6, 35, 0));
+    }
+
+    @Test
+    void run_includesDepartureAtEndOfDayTimeInterval() throws IOException {
+        // NGE declares dayTimeInterval as [from, to], with both bounds included. SIMPLE leaves at :05 hourly;
+        // its existing HVZ category is [06:00, 07:00], so both 06:05 and 07:05 must be converted.
+        String networkGraphic = Files.readString(TestCase.SIMPLE.getPath())
+                .replace("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1");
+        configureServiceDay(ServiceDayTime.MIN, ServiceDayTime.NOON, ServiceDayBoundary.FULL);
+        when(source.load()).thenReturn(new JsonDeserializer().read(networkGraphic));
+
+        converter.run();
+
+        verify(builder).addDeparture("IC_A_D_FORWARD", ServiceDayTime.of(6, 5, 0));
+        verify(builder).addDeparture("IC_A_D_FORWARD", ServiceDayTime.of(7, 5, 0));
     }
 
     @Test
