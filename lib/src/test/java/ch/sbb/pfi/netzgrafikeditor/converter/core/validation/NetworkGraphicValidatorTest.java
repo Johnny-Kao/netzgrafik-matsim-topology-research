@@ -13,6 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NetworkGraphicValidatorTest {
 
@@ -91,5 +92,18 @@ class NetworkGraphicValidatorTest {
 
         assertEquals(labels, sanitized.getLabels());
         assertEquals(List.of(1), sanitized.getNodes().getFirst().getLabelIds());
+    }
+
+    @Test
+    void run_rejectsNodeIdsCollidingAfterSanitizing() {
+        NetworkGraphic colliding = NetworkGraphic.builder()
+                .nodes(List.of(Node.builder().betriebspunktName("A B").build(),
+                        Node.builder().betriebspunktName("A_B").build()))
+                .build();
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> new NetworkGraphicValidator(ValidationStrategy.REPLACE_WHITESPACE, false, colliding).run());
+
+        assertTrue(exception.getMessage().contains("duplicate id 'A_B' from [A B, A_B]"));
     }
 }
