@@ -180,7 +180,8 @@ public class GtfsScheduleWriter implements ConverterSink<GtfsSchedule> {
     private <T> void writeToFile(List<T> list, GtfsFile gtfsFile) throws IOException {
         Path filePath = directory.resolve(gtfsFile.fileName);
 
-        try (OutputStream writer = Files.newOutputStream(filePath, StandardOpenOption.CREATE)) {
+        try (OutputStream writer = Files.newOutputStream(filePath, StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING)) {
             writeList(list, gtfsFile.clazz, writer);
         }
     }
