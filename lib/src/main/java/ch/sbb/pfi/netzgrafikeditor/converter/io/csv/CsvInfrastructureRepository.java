@@ -36,8 +36,17 @@ public class CsvInfrastructureRepository extends CsvRepository<StopFacilityInfo>
         Coordinate toCoord = getEntity(toStop.getId()).getCoordinate();
 
         // one straight segment from the node of the from stop to the node of the to stop
-        return List.of(new TrackSegmentInfo(String.format("%s-%s", fromStop.getId(), toStop.getId()),
+        return List.of(new TrackSegmentInfo(segmentId(fromStop.getId(), toStop.getId()),
                 new TrackNodeInfo(fromStop.getId(), fromCoord), new TrackNodeInfo(toStop.getId(), toCoord),
                 HaversineDistance.calculate(fromCoord, toCoord)));
+    }
+
+    private static String segmentId(String fromStopId, String toStopId) {
+        if (!fromStopId.contains("-") && !toStopId.contains("-")) {
+            return String.format("%s-%s", fromStopId, toStopId);
+        }
+
+        // The length prefixes make the pair unambiguous when a stop id itself contains the former '-' separator.
+        return String.format("%d:%s%d:%s", fromStopId.length(), fromStopId, toStopId.length(), toStopId);
     }
 }
