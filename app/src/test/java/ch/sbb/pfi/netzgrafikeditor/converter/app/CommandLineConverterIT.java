@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,9 +67,11 @@ class CommandLineConverterIT {
                 SpringApplication.run(CommandLineConverter.class, args.toArray(new String[0])));
 
         assertThat(exitCode).isEqualTo(0);
-        String stopTimes = Files.readString(outputDir.resolve("stop_times.txt"));
-        assertThat(stopTimes).contains("05:05:00");
-        assertThat(stopTimes).doesNotContain("04:05:00");
+        try (ZipFile gtfs = new ZipFile(outputDir.resolve("gtfs.zip").toFile())) {
+            String stopTimes = new String(gtfs.getInputStream(gtfs.getEntry("stop_times.txt")).readAllBytes());
+            assertThat(stopTimes).contains("05:05:00");
+            assertThat(stopTimes).doesNotContain("04:05:00");
+        }
     }
 
     private void runConverter(TestCase testCase, CapturedOutput output, String format) throws IOException {
