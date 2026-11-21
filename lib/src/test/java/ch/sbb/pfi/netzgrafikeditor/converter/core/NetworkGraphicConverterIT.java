@@ -1,5 +1,8 @@
 package ch.sbb.pfi.netzgrafikeditor.converter.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.GtfsSupplyBuilder;
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.model.Calendar;
 import ch.sbb.pfi.netzgrafikeditor.converter.adapter.gtfs.model.GtfsSchedule;
@@ -35,6 +38,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -216,12 +220,14 @@ public class NetworkGraphicConverterIT {
 
         @Test
         void run_preservesDifferentOperatingWeekdaysInOneFeed() throws IOException {
-            String networkGraphic = Files.readString(TestScenario.REALISTIC_SCENARIO.getNetworkGraphicFilePath())
-                    .replaceFirst("(?s)(\"id\": 1,.*?\"weekday\": \\[).*?(\\s*\\],\\s*\"linePatternRef\": \"HVZ\")",
-                            "$1\n          1,\n          2,\n          3,\n          4,\n          5$2")
-                    .replaceFirst("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1");
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode networkGraphic = (ObjectNode) mapper.readTree(
+                    Files.readString(TestScenario.REALISTIC_SCENARIO.getNetworkGraphicFilePath()));
+            ArrayNode timeCategories = (ArrayNode) networkGraphic.path("metadata").path("trainrunTimeCategories");
+            ((ObjectNode) timeCategories.get(1)).set("weekday", mapper.valueToTree(List.of(1, 2, 3, 4, 5)));
+            ((ObjectNode) networkGraphic.path("trainruns").get(0)).put("trainrunTimeCategoryId", 1);
             Path input = outputDir.resolve("mixed-weekdays.json");
-            Files.writeString(input, networkGraphic);
+            Files.writeString(input, mapper.writeValueAsString(networkGraphic));
             configure(input);
 
             converter.run();
