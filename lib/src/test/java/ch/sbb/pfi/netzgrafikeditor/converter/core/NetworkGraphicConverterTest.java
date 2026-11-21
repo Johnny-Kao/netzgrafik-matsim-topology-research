@@ -199,9 +199,10 @@ class NetworkGraphicConverterTest {
     @Test
     void run_includesDepartureAtEndOfDayTimeInterval() throws IOException {
         // NGE declares dayTimeInterval as [from, to], with both bounds included. SIMPLE leaves at :05 hourly;
-        // its existing HVZ category is [06:00, 07:00], so both 06:05 and 07:05 must be converted.
+        // extend its existing HVZ category to [06:00, 07:05], so both 06:05 and the upper bound 07:05 must convert.
         String networkGraphic = Files.readString(TestCase.SIMPLE.getPath())
-                .replace("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1");
+                .replace("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1")
+                .replace("\"to\": 420", "\"to\": 425");
         configureServiceDay(ServiceDayTime.MIN, ServiceDayTime.NOON, ServiceDayBoundary.FULL);
         when(source.load()).thenReturn(new JsonDeserializer().read(networkGraphic));
 
