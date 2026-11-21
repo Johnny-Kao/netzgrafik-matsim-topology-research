@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,6 +38,8 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
     private final List<Route> routes = new ArrayList<>();
     private final List<Trip> trips = new ArrayList<>();
     private final List<StopTime> stopTimes = new ArrayList<>();
+    private final Map<List<Integer>, Calendar> calendars = new LinkedHashMap<>();
+    private final Map<String, String> serviceIdsByRoute = new HashMap<>();
 
     private final Set<String> createdRoutes = new HashSet<>();
     private final Map<String, Integer> tripCounts = new HashMap<>();
@@ -80,6 +83,21 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
     }
 
     @Override
+    public GtfsSupplyBuilder addDeparture(String routeId, ServiceDayTime time) {
+        return addDeparture(routeId, time, List.of(1, 2, 3, 4, 5, 6, 7));
+    }
+
+    @Override
+    public GtfsSupplyBuilder addDeparture(String routeId, ServiceDayTime time, List<Integer> weekdays) {
+        List<Integer> days = weekdays == null ? List.of(1, 2, 3, 4, 5, 6, 7)
+                : weekdays.stream().sorted().distinct().toList();
+        Calendar calendar = calendars.computeIfAbsent(days, this::calendar);
+        serviceIdsByRoute.put(routeId, calendar.getServiceId());
+        super.addDeparture(routeId, time);
+        return this;
+    }
+
+    @Override
     protected void buildDeparture(VehicleAllocation vehicleAllocation) {
 
         String routeId = vehicleAllocation.getDepartureInfo().getTransitRouteInfo().getId();
@@ -89,7 +107,7 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
         // create and add trip
         trips.add(Trip.builder()
                 .routeId(vehicleAllocation.getDepartureInfo().getTransitRouteInfo().getTransitLineInfo().getId())
-                .serviceId(Calendar.DEFAULT_ID)
+                .serviceId(serviceIdsByRoute.get(routeId))
                 .tripId(tripId)
                 .tripHeadsign(currentRouteElements.getLast().getStopFacilityInfo().getId())
                 .build());
@@ -139,7 +157,21 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
 
     @Override
     protected GtfsSchedule getResult() {
-        return GtfsSchedule.builder().stops(stops).routes(routes).trips(trips).stopTimes(stopTimes).build();
+        return GtfsSchedule.builder().stops(stops).routes(routes).trips(trips).stopTimes(stopTimes)
+                .calendars(new ArrayList<>(calendars.values())).build();
+    }
+
+    private Calendar calendar(List<Integer> weekdays) {
+        String serviceId = weekdays.size() == 7 ? Calendar.DEFAULT_ID : "weekday-" + weekdays.stream()
+                .map(String::valueOf).collect(java.util.stream.Collectors.joining("-"));
+        return Calendar.builder().serviceId(serviceId)
+                .monday(typeFor(weekdays, 1)).tuesday(typeFor(weekdays, 2)).wednesday(typeFor(weekdays, 3))
+                .thursday(typeFor(weekdays, 4)).friday(typeFor(weekdays, 5)).saturday(typeFor(weekdays, 6))
+                .sunday(typeFor(weekdays, 7)).build();
+    }
+
+    private Calendar.Type typeFor(List<Integer> weekdays, int day) {
+        return weekdays.contains(day) ? Calendar.Type.AVAILABLE : Calendar.Type.NOT_AVAILABLE;
     }
 
     @Override

@@ -153,7 +153,8 @@ public class NetworkGraphicConverter<T> {
         addTransitRoute(routeId, lineId, visits, 0, visits.size() - 1, fachCategory);
 
         // trainruns with day time intervals always run full trips, the boundary only applies to the whole service day
-        List<DayTimeInterval> timeIntervals = lookup.times.get(train.getTrainrunTimeCategoryId()).getDayTimeIntervals();
+        TrainrunTimeCategory timeCategory = lookup.times.get(train.getTrainrunTimeCategoryId());
+        List<DayTimeInterval> timeIntervals = timeCategory.getDayTimeIntervals();
         if (timeIntervals.isEmpty() && config.getServiceDayBoundary() != ServiceDayBoundary.FULL) {
             addBoundedDepartures(routeId, lineId, train, sections.getFirst(), visits, fachCategory);
             return;
@@ -170,7 +171,7 @@ public class NetworkGraphicConverter<T> {
         // derive departures in time intervals and add to supply builder
         List<ServiceDayTime> departures = createDepartureTimes(timeIntervals, train, sections.getFirst());
         log.debug("Adding departures to {} at: {}", routeId, departures);
-        departures.forEach(departure -> builder.addDeparture(routeId, departure));
+        departures.forEach(departure -> builder.addDeparture(routeId, departure, timeCategory.getWeekday()));
     }
 
     /**

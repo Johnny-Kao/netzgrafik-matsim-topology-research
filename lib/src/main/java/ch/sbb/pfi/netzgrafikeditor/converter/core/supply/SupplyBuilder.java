@@ -3,6 +3,7 @@ package ch.sbb.pfi.netzgrafikeditor.converter.core.supply;
 import ch.sbb.pfi.netzgrafikeditor.converter.util.time.ServiceDayTime;
 
 import java.time.Duration;
+import java.util.List;
 
 public interface SupplyBuilder<T> {
 
@@ -17,6 +18,10 @@ public interface SupplyBuilder<T> {
     SupplyBuilder<T> addRoutePass(String routeId, String stopId);
 
     SupplyBuilder<T> addDeparture(String routeId, ServiceDayTime time);
+
+    default SupplyBuilder<T> addDeparture(String routeId, ServiceDayTime time, List<Integer> weekdays) {
+        return addDeparture(routeId, time);
+    }
 
     T build();
 

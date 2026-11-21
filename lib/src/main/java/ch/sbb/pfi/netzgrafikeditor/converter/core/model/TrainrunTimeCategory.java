@@ -21,6 +21,8 @@ public class TrainrunTimeCategory implements Identifiable {
 
     String name;
 
+    List<Integer> weekday;
+
     @JsonProperty("dayTimeInterval")
     List<DayTimeInterval> dayTimeIntervals;
 
