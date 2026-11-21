@@ -68,6 +68,6 @@ class CsvInfrastructureRepositoryTest {
         TrackSegmentInfo second = hyphenatedRepo.getTrack(new StopFacilityInfo("A", "", null),
                 new StopFacilityInfo("B-C", "", null), null).getFirst();
 
-        assertNotEquals(first.getId(), second.getId());
+        assertNotEquals(first.getSegmentId(), second.getSegmentId());
     }
 }
