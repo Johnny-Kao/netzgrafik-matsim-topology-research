@@ -217,19 +217,8 @@ public class NetworkGraphicConverterIT {
         @Test
         void run_preservesDifferentOperatingWeekdaysInOneFeed() throws IOException {
             String networkGraphic = Files.readString(TestScenario.REALISTIC_SCENARIO.getNetworkGraphicFilePath())
-                    .replace("""
-                            "weekday": [
-                              1,
-                              2,
-                              3,
-                              4,
-                              5,
-                              6,
-                              7
-                            ],
-                            "linePatternRef": "HVZ""", """
-                            "weekday": [1, 2, 3, 4, 5],
-                            "linePatternRef": "HVZ""")
+                    .replaceFirst("(?s)(\"id\": 1,.*?\"weekday\": \\[).*?(\\s*\\],\\s*\"linePatternRef\": \"HVZ\")",
+                            "$1\\n          1,\\n          2,\\n          3,\\n          4,\\n          5$2")
                     .replaceFirst("\"trainrunTimeCategoryId\": 0", "\"trainrunTimeCategoryId\": 1");
             Path input = outputDir.resolve("mixed-weekdays.json");
             Files.writeString(input, networkGraphic);
