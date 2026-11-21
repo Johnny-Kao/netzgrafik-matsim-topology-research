@@ -83,17 +83,11 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
     }
 
     @Override
-    public GtfsSupplyBuilder addDeparture(String routeId, ServiceDayTime time) {
-        return addDeparture(routeId, time, List.of(1, 2, 3, 4, 5, 6, 7));
-    }
-
-    @Override
-    public GtfsSupplyBuilder addDeparture(String routeId, ServiceDayTime time, List<Integer> weekdays) {
+    public GtfsSupplyBuilder setTransitRouteOperatingDays(String routeId, List<Integer> weekdays) {
         List<Integer> days = weekdays == null ? List.of(1, 2, 3, 4, 5, 6, 7)
                 : weekdays.stream().sorted().distinct().toList();
         Calendar calendar = calendars.computeIfAbsent(days, this::calendar);
         serviceIdsByRoute.put(routeId, calendar.getServiceId());
-        super.addDeparture(routeId, time);
         return this;
     }
 
@@ -107,7 +101,7 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
         // create and add trip
         trips.add(Trip.builder()
                 .routeId(vehicleAllocation.getDepartureInfo().getTransitRouteInfo().getTransitLineInfo().getId())
-                .serviceId(serviceIdsByRoute.get(routeId))
+                .serviceId(serviceIdsByRoute.getOrDefault(routeId, Calendar.DEFAULT_ID))
                 .tripId(tripId)
                 .tripHeadsign(currentRouteElements.getLast().getStopFacilityInfo().getId())
                 .build());
@@ -157,8 +151,10 @@ public class GtfsSupplyBuilder extends BaseSupplyBuilder<GtfsSchedule> {
 
     @Override
     protected GtfsSchedule getResult() {
+        List<Calendar> scheduleCalendars = calendars.isEmpty() ? List.of(Calendar.builder().build())
+                : new ArrayList<>(calendars.values());
         return GtfsSchedule.builder().stops(stops).routes(routes).trips(trips).stopTimes(stopTimes)
-                .calendars(new ArrayList<>(calendars.values())).build();
+                .calendars(scheduleCalendars).build();
     }
 
     private Calendar calendar(List<Integer> weekdays) {

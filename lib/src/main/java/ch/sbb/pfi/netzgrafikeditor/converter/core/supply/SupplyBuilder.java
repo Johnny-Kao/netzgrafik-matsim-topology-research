@@ -19,8 +19,8 @@ public interface SupplyBuilder<T> {
 
     SupplyBuilder<T> addDeparture(String routeId, ServiceDayTime time);
 
-    default SupplyBuilder<T> addDeparture(String routeId, ServiceDayTime time, List<Integer> weekdays) {
-        return addDeparture(routeId, time);
+    default SupplyBuilder<T> setTransitRouteOperatingDays(String routeId, List<Integer> weekdays) {
+        return this;
     }
 
     T build();
