@@ -13,6 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NetworkGraphicValidatorTest {
 
@@ -30,13 +31,13 @@ class NetworkGraphicValidatorTest {
     void setUp() {
         List<Node> nodes = List.of(Node.builder().betriebspunktName("validNode").build(),
                 Node.builder().betriebspunktName("in validNode").build(),
-                Node.builder().betriebspunktName(" invalidNode").build(),
+                Node.builder().betriebspunktName(" leadingInvalidNode").build(),
                 Node.builder().betriebspunktName("invalidNode ").build(),
                 Node.builder().betriebspunktName("inVälid.Nöde").build());
 
         List<Trainrun> trainruns = List.of(Trainrun.builder().name("validTrainrun").build(),
                 Trainrun.builder().name("in validTrainrun").build(),
-                Trainrun.builder().name(" invalidTrainrun").build(),
+                Trainrun.builder().name(" leadingInvalidTrainrun").build(),
                 Trainrun.builder().name("invalidTrainrun ").build(),
                 Trainrun.builder().name("inVälid.Träinrün").build());
 
@@ -56,23 +57,23 @@ class NetworkGraphicValidatorTest {
             case FAIL_ON_ISSUES -> assertThrows(IllegalStateException.class, validator::run);
             case REPLACE_WHITESPACE -> {
                 NetworkGraphic validated = validator.run();
-                assertEquals(List.of("validNode", "in_validNode", "invalidNode", "invalidNode", "inVälid.Nöde"),
+                assertEquals(List.of("validNode", "in_validNode", "leadingInvalidNode", "invalidNode", "inVälid.Nöde"),
                         getNodeIds(validated));
-                assertEquals(List.of("validTrainrun", "in_validTrainrun", "invalidTrainrun", "invalidTrainrun",
+                assertEquals(List.of("validTrainrun", "in_validTrainrun", "leadingInvalidTrainrun", "invalidTrainrun",
                         "inVälid.Träinrün"), getTrainrunIds(validated));
             }
             case REMOVE_SPECIAL_CHARACTERS -> {
                 NetworkGraphic validated = validator.run();
-                assertEquals(List.of("validNode", "in_validNode", "invalidNode", "invalidNode", "inVlidNde"),
+                assertEquals(List.of("validNode", "in_validNode", "leadingInvalidNode", "invalidNode", "inVlidNde"),
                         getNodeIds(validated));
-                assertEquals(List.of("validTrainrun", "in_validTrainrun", "invalidTrainrun", "invalidTrainrun",
+                assertEquals(List.of("validTrainrun", "in_validTrainrun", "leadingInvalidTrainrun", "invalidTrainrun",
                         "inVlidTrinrn"), getTrainrunIds(validated));
             }
             case REMOVE_DOTS_AND_REPLACE_WHITESPACE -> {
                 NetworkGraphic validated = validator.run();
-                assertEquals(List.of("validNode", "in_validNode", "_invalidNode", "invalidNode_", "inVälidNöde"),
+                assertEquals(List.of("validNode", "in_validNode", "_leadingInvalidNode", "invalidNode_", "inVälidNöde"),
                         getNodeIds(validated));
-                assertEquals(List.of("validTrainrun", "in_validTrainrun", "_invalidTrainrun", "invalidTrainrun_",
+                assertEquals(List.of("validTrainrun", "in_validTrainrun", "_leadingInvalidTrainrun", "invalidTrainrun_",
                         "inVälidTräinrün"), getTrainrunIds(validated));
             }
         }
@@ -91,5 +92,18 @@ class NetworkGraphicValidatorTest {
 
         assertEquals(labels, sanitized.getLabels());
         assertEquals(List.of(1), sanitized.getNodes().getFirst().getLabelIds());
+    }
+
+    @Test
+    void run_rejectsNodeIdsCollidingAfterSanitizing() {
+        NetworkGraphic colliding = NetworkGraphic.builder()
+                .nodes(List.of(Node.builder().betriebspunktName("A B").build(),
+                        Node.builder().betriebspunktName("A_B").build()))
+                .build();
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> new NetworkGraphicValidator(ValidationStrategy.REPLACE_WHITESPACE, false, colliding).run());
+
+        assertTrue(exception.getMessage().contains("duplicate id 'A_B' from [A B, A_B]"));
     }
 }

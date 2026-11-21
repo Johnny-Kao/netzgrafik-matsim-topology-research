@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 @RequiredArgsConstructor
@@ -38,6 +40,8 @@ public class NetworkGraphicSanitizer {
                     .build();
             fixedNodes.add(fixedNode);
         }
+        ensureUniqueIds("node", original.getNodes().stream().map(Node::getBetriebspunktName).toList(),
+                fixedNodes.stream().map(Node::getBetriebspunktName).toList());
 
         List<Trainrun> fixedTrainruns = original.getTrainruns();
         if (considerTrainruns) {
@@ -54,6 +58,8 @@ public class NetworkGraphicSanitizer {
                         .build();
                 fixedTrainruns.add(fixedTrainrun);
             }
+            ensureUniqueIds("trainrun", original.getTrainruns().stream().map(Trainrun::getName).toList(),
+                    fixedTrainruns.stream().map(Trainrun::getName).toList());
         }
 
         return NetworkGraphic.builder()
@@ -71,5 +77,20 @@ public class NetworkGraphicSanitizer {
         }
 
         return idProcessor.apply(id);
+    }
+
+    private void ensureUniqueIds(String target, List<String> originalIds, List<String> processedIds) {
+        Map<String, List<String>> originalsByProcessedId = new LinkedHashMap<>();
+        for (int index = 0; index < originalIds.size(); index++) {
+            originalsByProcessedId.computeIfAbsent(processedIds.get(index), ignored -> new ArrayList<>())
+                    .add(originalIds.get(index));
+        }
+
+        originalsByProcessedId.forEach((processedId, originals) -> {
+            if (originals.size() > 1) {
+                throw new IllegalStateException("Sanitizing " + target + " identifiers created duplicate id '"
+                        + processedId + "' from " + originals + ".");
+            }
+        });
     }
 }
