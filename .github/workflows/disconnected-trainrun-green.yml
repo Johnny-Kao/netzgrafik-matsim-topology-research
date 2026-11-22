@@ -1,0 +1,31 @@
+name: Disconnected Trainrun Candidate GREEN
+on:
+  push:
+    branches:
+      - research/disconnected-trainrun-green
+  workflow_dispatch:
+jobs:
+  candidate-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save research tests and candidate patch
+        run: |
+          cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunResearchTest.java /tmp/DisconnectedTrainrunResearchTest.java
+          cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunOutputResearchTest.java /tmp/DisconnectedTrainrunOutputResearchTest.java
+          cp research/disconnected/apply_candidate.py /tmp/apply_candidate.py
+      - name: Check out exact upstream baseline and apply research-only candidate
+        run: |
+          git fetch https://github.com/SchweizerischeBundesbahnen/netzgrafik-editor-converter.git ff750392e4a36fcb3caf19cbd555003a42c2bcb2
+          git checkout --detach FETCH_HEAD
+          cp /tmp/DisconnectedTrainrunResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunResearchTest.java
+          cp /tmp/DisconnectedTrainrunOutputResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunOutputResearchTest.java
+          python3 /tmp/apply_candidate.py
+          git diff --stat
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Full Maven reactor build, unit and integration tests
+        run: mvn --batch-mode install
