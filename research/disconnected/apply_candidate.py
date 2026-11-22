@@ -44,10 +44,10 @@ replacement = """    /**
             // find one end of this connected part
             TrainrunSection randomSection = remaining.values().iterator().next();
             AtomicReference<TrainrunSection> firstSection = new AtomicReference<>();
-            traverse(randomSection, firstSection::set, remaining, false);
+            traverse(randomSection, firstSection::set, remaining);
 
             // collect only this part and remove its sections from the remaining ones
-            traverse(firstSection.get(), orderedSections::addFirst, remaining, true);
+            traverse(firstSection.get(), section -> {\n                orderedSections.addFirst(section);\n                remaining.remove(section.getId());\n            }, remaining);
 
             SectionAligner.align(orderedSections);
             TrainrunSection first = orderedSections.getFirst();
@@ -65,17 +65,13 @@ replacement = """    /**
     }
 
     private void traverse(TrainrunSection root, Consumer<TrainrunSection> action,
-                          Map<Integer, TrainrunSection> remaining, boolean removeVisited) {
+                          Map<Integer, TrainrunSection> remaining) {
         Set<Integer> visited = new HashSet<>();
         TrainrunSection current = root;
 
         while (current != null) {
             action.accept(current);
             visited.add(current.getId());
-            if (removeVisited) {
-                remaining.remove(current.getId());
-            }
-
             TrainrunSection next = getNextSection(current, TraversalMode.TARGET, remaining, visited);
             if (next == null) {
                 next = getNextSection(current, TraversalMode.SOURCE, remaining, visited);
