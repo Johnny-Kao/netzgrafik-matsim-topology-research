@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - research/disconnected-trainrun-green
+      - research/disconnected-trainrun-maintainable
   workflow_dispatch:
 jobs:
   candidate-green:
