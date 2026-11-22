@@ -14,12 +14,14 @@ jobs:
           cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunResearchTest.java /tmp/DisconnectedTrainrunResearchTest.java
           cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunOutputResearchTest.java /tmp/DisconnectedTrainrunOutputResearchTest.java
           cp research/disconnected/apply_candidate.py /tmp/apply_candidate.py
+          cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunEdgeCasesResearchTest.java /tmp/DisconnectedTrainrunEdgeCasesResearchTest.java
       - name: Check out exact upstream baseline and apply research-only candidate
         run: |
           git fetch https://github.com/SchweizerischeBundesbahnen/netzgrafik-editor-converter.git ff750392e4a36fcb3caf19cbd555003a42c2bcb2
           git checkout --detach FETCH_HEAD
           cp /tmp/DisconnectedTrainrunResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunResearchTest.java
           cp /tmp/DisconnectedTrainrunOutputResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunOutputResearchTest.java
+          cp /tmp/DisconnectedTrainrunEdgeCasesResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunEdgeCasesResearchTest.java
           python3 /tmp/apply_candidate.py
           git diff --stat
       - uses: actions/setup-java@v4
