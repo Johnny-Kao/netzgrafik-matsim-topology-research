@@ -1,0 +1,28 @@
+name: PR239 Research Review
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/pr239-connection-review
+
+jobs:
+  verify-pr-head:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve research-only regression test
+        run: |
+          cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/Pr239ConnectionReviewTest.java /tmp/Pr239ConnectionReviewTest.java
+      - name: Checkout exact upstream PR 239 head
+        run: |
+          git fetch https://github.com/SchweizerischeBundesbahnen/netzgrafik-editor-converter.git 491c3e221b7a3ab311516b4ca8732699b6d5f05c
+          git checkout --detach FETCH_HEAD
+          cp /tmp/Pr239ConnectionReviewTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/Pr239ConnectionReviewTest.java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run targeted PR239 regression cases
+        run: mvn --batch-mode -pl lib -am test -Dtest=Pr239ConnectionReviewTest -Dsurefire.failIfNoSpecifiedTests=false
