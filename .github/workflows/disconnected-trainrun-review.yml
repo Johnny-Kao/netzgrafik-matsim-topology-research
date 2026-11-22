@@ -1,0 +1,24 @@
+name: Disconnected Trainrun Research
+on:
+  push:
+    branches:
+      - research/disconnected-trainrun-loss
+  workflow_dispatch:
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save research test and check out upstream
+        run: |
+          cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunResearchTest.java /tmp/DisconnectedTrainrunResearchTest.java
+          git fetch https://github.com/SchweizerischeBundesbahnen/netzgrafik-editor-converter.git main
+          git checkout --detach FETCH_HEAD
+          cp /tmp/DisconnectedTrainrunResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunResearchTest.java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run targeted research red test
+        run: mvn --batch-mode -pl lib -am test -Dtest=DisconnectedTrainrunResearchTest -Dsurefire.failIfNoSpecifiedTests=false
