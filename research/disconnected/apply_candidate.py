@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.TreeMap;""")
 
 old_build = Path(sequence).read_text()
-start = old_build.index('    /**\n     * Traverse and order trainrun sections')
+start = old_build.index('    /**\n     * Traverse the sections and build an ordered, directed section sequences.')
 end = old_build.index('    private TrainrunSection getNextSection(', start)
 original = old_build[start:end]
 
