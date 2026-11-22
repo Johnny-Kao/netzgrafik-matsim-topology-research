@@ -29,7 +29,6 @@ import static org.mockito.Mockito.*;
 class DisconnectedTrainrunResearchTest {
     @Test
     void everySectionOfAnIncompleteTrainrunMustRemainInOutput() {
-        // The editor interprets A-B and C-D (missing B-C) as two independent trainrun parts.
         var a = Node.builder().id(1).ports(List.of(Port.builder().id(11).trainrunSectionId(101).build())).transitions(List.of()).build();
         var b = Node.builder().id(2).ports(List.of(Port.builder().id(12).trainrunSectionId(101).build())).transitions(List.of()).build();
         var c = Node.builder().id(3).ports(List.of(Port.builder().id(13).trainrunSectionId(102).build())).transitions(List.of()).build();
@@ -46,22 +45,19 @@ class DisconnectedTrainrunResearchTest {
 
     @Test
     void fullConverterMustPreserveBothDisconnectedParts() throws IOException {
-        // Start from an official converter fixture with two valid unconnected sections.
-        // Make the second IC section part of the same trainrun but leave the two ports unconnected.
+        // Official simple.json has A-B, B-C, C-D for one trainrun.
+        // Remove middle B-C and its endpoints' now-obsolete transitions: an Editor-supported hole.
         ObjectMapper mapper = new ObjectMapper();
-        var original = new TestFile("ng/connections", "connections.json");
+        var original = new TestFile("ng/cases", "simple.json");
         ObjectNode graphic = (ObjectNode) mapper.readTree(Files.readString(original.getPath()));
-        ArrayNode trains = (ArrayNode) graphic.get("trainruns");
-        for (int i = trains.size() - 1; i >= 0; --i) {
-            if (trains.get(i).get("id").asInt() == 2) {
-                trains.remove(i);
+        ((ArrayNode) graphic.get("trainrunSections")).remove(1);
+        ((ObjectNode) ((ArrayNode) graphic.get("trainruns")).get(0)).put("direction", "one_way");
+        for (var node : (ArrayNode) graphic.get("nodes")) {
+            ArrayNode ports = (ArrayNode) node.get("ports");
+            for (int i = ports.size() - 1; i >= 0; --i) {
+                if (ports.get(i).get("trainrunSectionId").asInt() == 4) ports.remove(i);
             }
-        }
-        ArrayNode sections = (ArrayNode) graphic.get("trainrunSections");
-        for (int i = 0; i < sections.size(); i++) {
-            if (sections.get(i).get("id").asInt() == 21) {
-                ((ObjectNode) sections.get(i)).put("trainrunId", 1);
-            }
+            ((ArrayNode) ((ObjectNode) node).get("transitions")).removeAll();
         }
         var input = Files.createTempFile("disconnected-nge-", ".json");
         try {
@@ -76,8 +72,7 @@ class DisconnectedTrainrunResearchTest {
                     .serviceDayEnd(ServiceDayTime.of(8, 0, 0))
                     .build();
             new NetworkGraphicConverter<>(config, new JsonFileReader(input), builder, sink).run();
-
-            // Expect two distinct IC route components. Current converter emits only one.
+            // Both A-B and C-D are independent one-way routes in the editor model.
             verify(builder, times(2)).addTransitRoute(startsWith("IC_"), anyString(), anyString(), any());
         } finally {
             Files.deleteIfExists(input);
