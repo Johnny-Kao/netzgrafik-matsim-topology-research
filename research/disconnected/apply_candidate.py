@@ -22,8 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;""")
+import java.util.Set;""")
 
 old_build = Path(sequence).read_text()
 start = old_build.index('    /**\n     * Traverse the sections and build an ordered, directed section sequences.')
@@ -35,7 +34,7 @@ replacement = """    /**
      * The editor retains disconnected parts, for example after a partial cancellation.
      */
     List<EnumMap<RouteDirection, List<TrainrunSection>>> buildComponents(Trainrun.Direction direction) {
-        Map<Integer, TrainrunSection> remaining = new TreeMap<>(sections);
+        Map<Integer, TrainrunSection> remaining = new HashMap<>(sections);
         List<EnumMap<RouteDirection, List<TrainrunSection>>> components = new ArrayList<>();
 
         while (!remaining.isEmpty()) {
