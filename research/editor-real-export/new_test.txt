@@ -1,0 +1,29 @@
+  it("research: Editor deletion emits two disconnected sections in its actual export DTO", () => {
+    dataService.loadNetzgrafikDto(NetzgrafikUnitTesting.getUnitTestNetzgrafik());
+    const before = dataService.getNetzgrafikDto();
+    const originals = before.trainrunSections
+      .filter((section) => section.trainrunId === 2)
+      .map((section) => section.id);
+    expect(originals).toEqual([3, 4, 5]);
+
+    // This is the real Editor service method used when deleting a trainrun section.
+    trainrunSectionService.deleteTrainrunSection(4);
+    // This is the real Editor DTO serialization path.
+    const exported = dataService.getNetzgrafikDto();
+    const remaining = exported.trainrunSections
+      .filter((section) => section.trainrunId === 2)
+      .map((section) => section.id);
+    console.log("EDITOR_EXPORT_RESEARCH", JSON.stringify({
+      before: originals,
+      after: remaining,
+      sameTrainrun: exported.trainrunSections.filter((section) => section.trainrunId === 2).map((section) => ({
+        id: section.id,
+        sourceNodeId: section.sourceNodeId,
+        targetNodeId: section.targetNodeId,
+        trainrunId: section.trainrunId
+      })),
+      trainrunPresent: exported.trainruns.some((trainrun) => trainrun.id === 2)
+    }));
+    expect(remaining).toEqual([3, 5]);
+    expect(exported.trainruns.some((trainrun) => trainrun.id === 2)).toBeTrue();
+  });
