@@ -1,0 +1,44 @@
+name: Validate Editor Native Export of Disconnected Trainrun
+on:
+  push:
+    branches:
+      - research/editor-real-export-gap
+  workflow_dispatch:
+jobs:
+  editor-export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out research evidence
+        uses: actions/checkout@v4
+      - name: Save test snippet
+        run: cp research/editor-real-export/new_test.txt /tmp/editor-export-test.txt
+      - name: Check out real Editor source
+        uses: actions/checkout@v4
+        with:
+          repository: OpenRailAssociation/netzgrafik-editor-frontend
+          path: frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Inject research test into existing Editor unit test suite
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          test = Path('frontend/src/app/services/data/trainrun.service.spec.ts')
+          current = test.read_text()
+          assert current.rstrip().endswith('});')
+          snippet = Path('/tmp/editor-export-test.txt').read_text()
+          pos = current.rfind('});')
+          test.write_text(current[:pos] + snippet + current[pos:])
+          PY
+      - name: Install Editor dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Run real Editor delete and DTO export test
+        working-directory: frontend
+        run: |
+          set -o pipefail
+          npm test -- --include='src/app/services/data/trainrun.service.spec.ts' 2>&1 | tee /tmp/editor-test.log
+          grep EDITOR_EXPORT_RESEARCH /tmp/editor-test.log
