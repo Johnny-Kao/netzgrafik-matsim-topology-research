@@ -38,8 +38,9 @@ class DisconnectedTrainrunResearchTest {
         builder.add(TrainrunSection.builder().id(101).trainrunId(7).sourceNodeId(1).targetNodeId(2).build());
         builder.add(TrainrunSection.builder().id(102).trainrunId(7).sourceNodeId(3).targetNodeId(4).build());
 
-        Set<Integer> emitted = builder.build(Trainrun.Direction.ONE_WAY)
-                .values().stream().flatMap(List::stream).map(TrainrunSection::getId).collect(Collectors.toSet());
+        Set<Integer> emitted = builder.buildComponents(Trainrun.Direction.ONE_WAY)
+                .stream().flatMap(m -> m.get(RouteDirection.FORWARD).stream())
+                .map(TrainrunSection::getId).collect(Collectors.toSet());
         assertEquals(Set.of(101, 102), emitted, "an unfinished trainrun must not silently lose one component");
     }
 
