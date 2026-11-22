@@ -1,0 +1,26 @@
+name: Disconnected Trainrun on PR239 Head
+on:
+  push:
+    branches:
+      - research/disconnected-trainrun-pr239
+  workflow_dispatch:
+jobs:
+  pr239-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save research output tests
+        run: |
+          cp lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunOutputResearchTest.java /tmp/DisconnectedTrainrunOutputResearchTest.java
+      - name: Use exact PR239 source
+        run: |
+          git fetch https://github.com/SchweizerischeBundesbahnen/netzgrafik-editor-converter.git 491c3e221b7a3ab311516b4ca8732699b6d5f05c
+          git checkout --detach FETCH_HEAD
+          cp /tmp/DisconnectedTrainrunOutputResearchTest.java lib/src/test/java/ch/sbb/pfi/netzgrafikeditor/converter/core/DisconnectedTrainrunOutputResearchTest.java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Test actual GTFS and MATSim on PR239
+        run: mvn --batch-mode -pl lib -am test -Dtest=DisconnectedTrainrunOutputResearchTest -Dsurefire.failIfNoSpecifiedTests=false
