@@ -19,6 +19,7 @@ import java.util.Map;""",
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ replacement = """    /**
      * The editor retains disconnected parts, for example after a partial cancellation.
      */
     List<EnumMap<RouteDirection, List<TrainrunSection>>> buildComponents(Trainrun.Direction direction) {
-        Map<Integer, TrainrunSection> remaining = new HashMap<>(sections);
+        Map<Integer, TrainrunSection> remaining = new LinkedHashMap<>(sections);
         List<EnumMap<RouteDirection, List<TrainrunSection>>> components = new ArrayList<>();
 
         while (!remaining.isEmpty()) {
