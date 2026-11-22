@@ -83,7 +83,7 @@ class DisconnectedTrainrunOutputResearchTest {
         Path output = Files.createTempDirectory("nge-gap-matsim-");
         try {
             RollingStockRepository stock = new NoRollingStockRepository();
-            var builder = new MatsimSupplyBuilder(new NoInfrastructureRepository(),stock,new NoVehicleCircuitsPlanner(stock));
+            var builder = new MatsimSupplyBuilder(new NoInfrastructureRepository(),stock,new NoVehicleCircuitsPlanner(stock), ch.sbb.pfi.netzgrafikeditor.converter.core.validation.ValidationStrategy.WARN_ON_ISSUES);
             final Scenario[] result = new Scenario[1];
             new NetworkGraphicConverter<>(config(), new JsonFileReader(input), builder, scenario -> {
                 result[0]=scenario;
